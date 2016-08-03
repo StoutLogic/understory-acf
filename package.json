@@ -1,0 +1,12 @@
+{
+  "name": "understory-acf",
+  "version": "1.0.0",
+  "description": "ACF Extentions for Understory. Provides custom fields and option pages support for Understory.",
+  "author": "Steve Pfisterer <steve@stoutlogic.com>",
+  "license": "GPL-2.0+",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-notify": "^2.2.0",
+    "gulp-phpunit": "^0.14.0"
+  }
+}
