@@ -1,0 +1,47 @@
+{
+    "name": "stoutlogic/understory-acf",
+    "description": "ACF Extentions for Understory. Provides custom fields and option pages support for Understory.",
+    "license": "GPL-2.0+",
+    "authors": [
+        {
+            "name": "Steve Pfisterer",
+            "email": "steve@stoutlogic.com"
+        }
+    ],
+    "repositories": {
+      "TGM": {
+        "type": "git",
+        "url": "https://github.com/StoutLogic/TGM-Plugin-Activation"
+      },
+      "understory": {
+          "type": "path",
+          "url": "/Users/steve/Work/stoutlogic/understory"
+      },
+      "acf-builder": {
+          "type": "path",
+          "url": "/Users/steve/Work/stoutlogic/acf-builder"
+      }
+  },
+    "require": {
+        "php": ">=5.4.0",
+        "stoutlogic/understory": "dev-master",
+        "stoutlogic/acf-builder": "dev-develop"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "5.4.*",
+        "tgmpa/tgm-plugin-activation": "dev-develop",
+        "mockery/mockery": "^0.9.5",
+        "php-mock/php-mock-mockery": "^1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Understory\\ACF\\": "lib/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Understory\\ACF\\Tests\\": "tests/"
+        }
+    },
+    "version": "dev-master"
+}
