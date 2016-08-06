@@ -137,7 +137,7 @@ class OptionsPage implements MetaDataBinding, Registerable
     }
 
     /**
-     * Wrap WordPress's built in `set_option` method passing the option name
+     * Wrap WordPress's built in `set_option` method passing the option name'
      * combined with the `id` of the OptionsPage. This is how ACF stores the
      * options in the wp_options table.
      *
@@ -147,5 +147,10 @@ class OptionsPage implements MetaDataBinding, Registerable
     private function setOption($optionName, $value)
     {
         return update_option($this->getId().'_'.$optionName, $value);
+    }
+
+    public function getBindingName()
+    {
+        return $this->getId();
     }
 }

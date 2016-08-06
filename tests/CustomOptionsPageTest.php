@@ -35,7 +35,7 @@ class CustomOptionsPageTest extends TestCase
                     ->shouldReceive('register')
                     ->once();
 
-                $fieldGroup = Mockery::mock(FieldGroup::class);
+                $fieldGroup = Mockery::spy(FieldGroup::class);
 
                 $fieldGroup
                     ->shouldReceive('register')
@@ -45,7 +45,7 @@ class CustomOptionsPageTest extends TestCase
                     ->shouldReceive('setMetaDataBinding')
                     ->once();
 
-                $siteSettings->set('field', $fieldGroup);
+                $siteSettings->has('field', $fieldGroup);
 
                 return $optionsPageMock;
             });
