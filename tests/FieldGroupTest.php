@@ -2,23 +2,26 @@
 
 namespace Understory\ACF\Tests;
 
-use StoutLogic\AcfBuilder\FieldsBuilder;
+use Understory\ACF\FieldsBuilder;
 use Understory\ACF\FieldGroup;
 use Understory\ACF\FieldGroupInterface;
 use Understory\CustomPostType;
-
+use PHPUnit\Framework\TestCase;
 use phpmock\mockery\PHPMockery;
 use Mockery;
 
-class FieldGroupTest extends \PHPUnit_Framework_TestCase
+class FieldGroupTest extends TestCase
 {
     public function setup()
     {
         // Mock the WordPress global function
-        $this->wordPressAddActionMock = PHPMockery::mock('Understory\ACF', "add_action")
+        $this->wordPressAddActionMock = PHPMockery::mock('Understory\ACF',
+            "add_action")
             ->with('acf/init', Mockery::any());
     }
-    public function tearDown() {
+
+    public function tearDown()
+    {
         // see Mockery's documentation for why we do this
         Mockery::close();
     }
@@ -37,14 +40,18 @@ class FieldGroupTest extends \PHPUnit_Framework_TestCase
         $newMetaDataBinding = $this->createMock(\Understory\MetaDataBinding::class);
 
         $fieldGroup = $this
-            ->getMockForAbstractClass(FieldGroup::class, [$metaDataBindingValue]);
+            ->getMockForAbstractClass(FieldGroup::class,
+                [$metaDataBindingValue]);
 
-        $this->assertSame($metaDataBindingValue, $fieldGroup->getMetaDataBinding());
+        $this->assertSame($metaDataBindingValue,
+            $fieldGroup->getMetaDataBinding());
 
         $fieldGroup->setMetaDataBinding($newMetaDataBinding);
 
-        $this->assertNotSame($metaDataBindingValue, $fieldGroup->getMetaDataBinding());
-        $this->assertSame($newMetaDataBinding, $fieldGroup->getMetaDataBinding());
+        $this->assertNotSame($metaDataBindingValue,
+            $fieldGroup->getMetaDataBinding());
+        $this->assertSame($newMetaDataBinding,
+            $fieldGroup->getMetaDataBinding());
     }
 
     public function testParentFieldGroupMetaDataBinding()
@@ -52,12 +59,15 @@ class FieldGroupTest extends \PHPUnit_Framework_TestCase
         $metaDataBindingValue = $this->createMock(\Understory\MetaDataBinding::class);
 
         $parentFieldGroup = $this
-            ->getMockForAbstractClass(FieldGroup::class, [$metaDataBindingValue]);
+            ->getMockForAbstractClass(FieldGroup::class,
+                [$metaDataBindingValue]);
         $childFieldGroup = $this
             ->getMockForAbstractClass(FieldGroup::class, [$parentFieldGroup]);
 
-        $this->assertSame($metaDataBindingValue, $parentFieldGroup->getMetaDataBinding());
-        $this->assertSame($metaDataBindingValue, $childFieldGroup->getMetaDataBinding());
+        $this->assertSame($metaDataBindingValue,
+            $parentFieldGroup->getMetaDataBinding());
+        $this->assertSame($metaDataBindingValue,
+            $childFieldGroup->getMetaDataBinding());
     }
 
     public function testGetMetaValue()
@@ -142,10 +152,12 @@ class FieldGroupTest extends \PHPUnit_Framework_TestCase
             ->getMockForAbstractClass(FieldGroup::class, [$metaDataBinding]);
 
         $childFieldGroup = $this
-            ->getMockForAbstractClass(FieldGroup::class, [$parentFieldGroup, 'slide_1']);
+            ->getMockForAbstractClass(FieldGroup::class,
+                [$parentFieldGroup, 'slide_1']);
 
         $grandChildFieldGroup = $this
-            ->getMockForAbstractClass(FieldGroup::class, [$childFieldGroup, 'column_1']);
+            ->getMockForAbstractClass(FieldGroup::class,
+                [$childFieldGroup, 'column_1']);
 
         $this->assertSame(
             $metaValue,
@@ -193,8 +205,8 @@ class FieldGroupTest extends \PHPUnit_Framework_TestCase
         $unseralized = ['FieldGroup1', 'FieldGroup2', 'FieldGroup3'];
 
         $layout = $this->getMockBuilder(CustomPostType::class)
-                ->setMockClassName('FieldGroup2')
-                ->getMock();
+            ->setMockClassName('FieldGroup2')
+            ->getMock();
 
 
         $metaValues = serialize($unseralized);
@@ -228,12 +240,13 @@ class FieldGroupTest extends \PHPUnit_Framework_TestCase
 
     public function testConfigure()
     {
-        $fieldGroup = Mockery::namedMock('Banner', FieldGroup::class.'[configure]')
+        $fieldGroup = Mockery::namedMock('Banner',
+            FieldGroup::class . '[configure]')
             ->shouldAllowMockingProtectedMethods();
 
         $fieldGroup
             ->shouldReceive('configure')
-            ->andReturnUsing(function($builder) {
+            ->andReturnUsing(function ($builder) {
                 $this->assertInstanceOf(FieldsBuilder::class, $builder);
                 $this->assertStringEndsWith(
                     "banner",
@@ -270,20 +283,17 @@ class FieldGroupTest extends \PHPUnit_Framework_TestCase
             ->shouldReceive('getPostType')
             ->andReturn('test');
 
-        $fieldGroup = Mockery::mock(FieldGroup::class.'[configure]')
+        $fieldGroup = Mockery::mock(FieldGroup::class . '[configure]')
             ->shouldAllowMockingProtectedMethods();
 
         $fieldGroup
             ->shouldReceive('configure')
-            ->andReturnUsing(function($builder) {
+            ->andReturnUsing(function ($builder) {
                 $builder->addText('title');
                 $builder->addWysiwyg('content');
 
                 return $builder;
             });
-
-        // Mock the WordPress global function
-        $this->wordPressAddActionMock->times(2);
 
         $expectedConfig = [
             'location' => [
@@ -296,9 +306,32 @@ class FieldGroupTest extends \PHPUnit_Framework_TestCase
                 ]
             ],
         ];
+        $config = $fieldGroup->register($metaDataBinding->getMock());
+        $this->assertArraySubset($expectedConfig, $config);
+    }
 
-        $this->assertArraySubset($expectedConfig, $fieldGroup->register($metaDataBinding));
-                print_r($fieldGroup->getConfig()->build());
+    public function testSetSequentialPosition()
+    {
+        $fieldGroup = Mockery::mock(FieldGroup::class . '[configure]')
+            ->shouldAllowMockingProtectedMethods();
 
+        $fieldGroup
+            ->shouldReceive('configure')
+            ->andReturnUsing(function ($builder) {
+                $builder->addText('title');
+                $builder->addWysiwyg('content');
+
+                return $builder;
+            });
+
+        $metaDataBinding = Mockery::mock(CustomPostType::class);
+
+        $fieldGroup->setSequentialPosition(5, $metaDataBinding);
+
+        $expectedConfig = [
+            'menu_order' => 5,
+        ];
+
+        $this->assertArraySubset($expectedConfig, $fieldGroup->register());
     }
 }

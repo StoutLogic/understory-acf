@@ -1,15 +1,19 @@
 <?php
 
+
 namespace Understory\ACF;
 
 use Understory\DelegatesMetaDataBinding;
 use Understory\MetaDataBinding;
 use Understory\Registerable;
+use Understory\Sequential;
 use Understory;
 
-abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
+require('PatchACFToUseTermMeta.php');
+
+abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Sequential
 {
-    use \Understory\Core;
+    use Understory\Core;
 
     /**
      * MetaDataBinding of the Object that has this field.
@@ -49,7 +53,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
     /**
      * Pass in the metaDataBinding of the Object that has this field.
      *
-     * @param mixed  $metaDataBinding              gets passed to registerRule
+     * @param mixed  $binding              gets passed to registerRule
      * @param string $metaValueNamespace if part of a repeater pass in the prefix to retrive
      *                                   the meta data from the database for that row
      */
@@ -72,21 +76,13 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
      */
     private function initializeBuilder()
     {
-        $reflectionClass = new \ReflectionClass(static::class);
-
-        // Chop off the namespace
-        $className = $reflectionClass->getShortName();
-
-        // Convert to snake case
-        $className = ltrim(strtolower(preg_replace('/[A-Z]/', '_$0', $className)), '_');
-
-        return new FieldsBuilder($className);
+        return new FieldsBuilder($this->getBindingName());
     }
 
     /**
      * Returns the AcfBuilder object. If config isn't set, set it to the
      * defaultConfig
-     * @return \StoutLogic\acf-builder\FieldsBuilder
+     * @return FieldsBuilder
      */
     public function getConfig()
     {
@@ -151,7 +147,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
             $this->setCustomPostTypeLocation($metaDataBinding);
         } else if ($metaDataBinding instanceof Understory\CustomTaxonomy) {
             $this->setCustomTaxonomyLocation($metaDataBinding);
-        } else if ($metaDataBinding instanceof Understory\ACF\OptionPage) {
+        } else if ($metaDataBinding instanceof OptionsPage) {
             $this->setOptionsPageLocation($metaDataBinding);
         } else if ($metaDataBinding instanceof Understory\User) {
             $this->setUserFormLocation($metaDataBinding);
@@ -203,13 +199,13 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
 
     private function setCustomTaxonomyLocation(Understory\CustomTaxonomy $metaDataBinding)
     {
-        $taxonomy = $metaDataBinding->getName();
-        $this->namespaceFieldGroupKey('post_type_' . $taxonomy);
+        $taxonomy = $metaDataBinding->getTaxonomy();
+        $this->namespaceFieldGroupKey('taxonomy_' . $taxonomy);
 
         $this->setLocation('taxonomy', '==', $taxonomy);
     }
 
-    private function setOptionsPageLocation(Understory\ACF\OptionPage $metaDataBinding)
+    private function setOptionsPageLocation(Understory\ACF\OptionsPage $metaDataBinding)
     {
         $this->namespaceFieldGroupKey('options_' . $metaDataBinding->getId());
         $this->setLocation('options_page', '==', $metaDataBinding->getId());
@@ -224,9 +220,20 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
     private function namespaceFieldGroupKey($append)
     {
         $builder = $this->getConfig();
-        $builder->setGroupConfig('key',
+        $builder->setGroupConfig(
+            'key',
             $builder->getGroupConfig('key') . '_' . $append
         );
+    }
+
+    /**
+     * Sets the Field Group's Menu Order.
+     * @param $position
+     * @param MetaDataBinding $metaDataBinding
+     */
+    public function setSequentialPosition($position, MetaDataBinding $metaDataBinding)
+    {
+        $this->getConfig()->setGroupConfig('menu_order', $position);
     }
 
     /**
@@ -234,22 +241,17 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
      *
      * @param object $metaDataBinding     Shortcut which will call setLocation with
      *                          this metaDataBinding.
-     * @param integer $order    Order the field group should appear in the metaDataBinding
      * @return array $config    The final ACF config array
      */
-    public function register($metaDataBinding = null, $order = 0)
+    public function register($metaDataBinding = null)
     {
         if (!$metaDataBinding) {
             $metaDataBinding = $this->getMetaDataBinding();
         }
         $this->setLocationForMetaDataBinding($metaDataBinding);
 
-        $builder = $this->getConfig();
-        $builder->setGroupConfig('menu_order', $order);
-
         // Namespace the config keys
-        $config = $builder->build();
-
+        $config = $this->getConfig()->build();
 
         // Optimization:
         // Don't register a field group that already exists
@@ -321,7 +323,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
      * A getter is still required if the value needs any post processing
      *
      * @param string $metaFieldKey
-     * @param index  $index        optional
+     * @param int  $index        optional
      *
      * @return mixed Meta Value or FieldGroup
      */
@@ -437,6 +439,17 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
         return $this->metaDataBinding;
     }
 
+    public function getBindingName()
+    {
+        $reflectionClass = new \ReflectionClass(static::class);
+
+        // Chop off the namespace
+        $className = $reflectionClass->getShortName();
+
+        // Convert to snake case
+        return ltrim(strtolower(preg_replace('/[A-Z]/', '_$0', $className)), '_');
+    }
+
     private function setParentFieldGroup($parentFieldGroup)
     {
         $this->parentFieldGroup = $parentFieldGroup;
@@ -452,7 +465,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
         $this->namespace = $namespace;
     }
 
-    public function getNamespace($namespace)
+    public function getNamespace()
     {
         return $this->namespace;
     }
