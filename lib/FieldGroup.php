@@ -143,13 +143,13 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
     {
         if ($metaDataBinding instanceof Understory\View) {
             $this->setViewLocation($metaDataBinding);
-        } else if ($metaDataBinding instanceof Understory\CustomPostType) {
+        } elseif ($metaDataBinding instanceof Understory\CustomPostType) {
             $this->setCustomPostTypeLocation($metaDataBinding);
-        } else if ($metaDataBinding instanceof Understory\CustomTaxonomy) {
+        } elseif ($metaDataBinding instanceof Understory\CustomTaxonomy) {
             $this->setCustomTaxonomyLocation($metaDataBinding);
-        } else if ($metaDataBinding instanceof OptionsPage) {
+        } elseif ($metaDataBinding instanceof OptionsPage) {
             $this->setOptionsPageLocation($metaDataBinding);
-        } else if ($metaDataBinding instanceof Understory\User) {
+        } elseif ($metaDataBinding instanceof Understory\User) {
             $this->setUserFormLocation($metaDataBinding);
         }
         return $this;
@@ -279,11 +279,24 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
             $namespace = $metaFieldKey.'_'.$index;
 
             // Create a new instance of our current FieldGroup sub class
-            $fieldGroupClass = get_called_class();
+
+            $fieldGroupClass = $this->getRepeaterClass($metaFieldKey);
             $this->repeaterRows[$index] = new $fieldGroupClass($this,  $namespace);
         }
 
         return $this->repeaterRows[$index];
+    }
+
+    private function getRepeaterClass($metaFieldKey)
+    {
+        if ($this->fieldExists($metaFieldKey)) {
+            $field = $this->getField($metaFieldKey);
+            if ($field instanceof RepeaterBuilder && $field->getRepeaterFieldsClass()) {
+                return $field->getRepeaterFieldsClass();
+            }
+        }
+
+        return get_called_class();
     }
 
     /**
@@ -297,6 +310,10 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
      */
     public function getMetaValue($metaFieldKey, $index = null)
     {
+        if ($index === null && $cachedMetaValue = $this->getCachedMetaValue($metaFieldKey)) {
+            return $cachedMetaValue;
+        }
+
         if (isset($index)) {
             return $this->getRepeaterRow($metaFieldKey, $index);
         }
@@ -304,6 +321,37 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
         $namespacedMetaFieldKey = $this->getNamespacedMetaFieldKey($metaFieldKey);
 
         return $this->getMetaDataBinding()->getMetaValue($namespacedMetaFieldKey);
+    }
+
+    /**
+     * Timber caches all meta data on the object as a public property. The property name
+     * is the same as the Namespaced Meta Field Key. This will save a database lookup.
+     *
+     * If the field is a Repeater, then return using getMetaValues, and pass in the Repeater Field's
+     * class, that was used in the `addFields` method call during configuration. If one wasn't used, null
+     * will be passed, resulting in the current FieldGroup's class being used to initialize the repeater
+     * items.
+     * @param string $metaFieldKey
+     * @return mixed
+     */
+    public function getCachedMetaValue($metaFieldKey)
+    {
+        // If a repeater, get instance
+        if ($this->fieldExists($metaFieldKey)) {
+            $field = $this->getField($metaFieldKey);
+            if ($field instanceof RepeaterBuilder) {
+                return $this->getMetaValues($field->getName(), $field->getRepeaterFieldsClass());
+            }
+        }
+
+        // Otherwise use the value Timber probably has cached
+        $fieldKey = $this->getNamespacedMetaFieldKey($metaFieldKey);
+
+        if (isset($this->getMetaDataBinding()->$fieldKey)) {
+            return $this->getMetaDataBinding()->$fieldKey;
+        }
+
+        return false;
     }
 
     public function setMetaValue($metaFieldKey, $value)
@@ -355,7 +403,6 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
         if (!array_key_exists($metaFieldKey, $this->metaValues)) {
             $this->metaValues[$metaFieldKey] = [];
 
-
             $value = $this->getMetaValue($metaFieldKey);
 
             // Check to see if is a repeater or flexible content field
@@ -364,7 +411,10 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
                 $count = $value;
             } else {
                 // Flexible Content
-                $classNames = unserialize($value);
+                $classNames = $value;
+                if (!is_array($value)) {
+                    $classNames = unserialize($value);
+                }
                 $count = count($classNames);
             }
 
@@ -372,9 +422,10 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
                 if (isset($classNames) && is_array($classNames)) {
                     $className = $classNames[$i];
                 }
+                $className = urldecode($className);
 
                 if (class_exists($className)) {
-                    $this->metaValues[$metaFieldKey][] = new $className($this->getMetaValue($metaFieldKey, $i));
+                    $this->metaValues[$metaFieldKey][] = new $className($this, $metaFieldKey.'_'.$i);
                 } else {
                     $this->metaValues[$metaFieldKey][] = $this->getMetaValue($metaFieldKey, $i);
                 }
@@ -478,5 +529,28 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
     private function getMetaValueNamespace()
     {
         return $this->metaValueNamespace;
+    }
+
+    public function __call($method, $args)
+    {
+        return $this->__get($method);
+    }
+
+    public function __get($property)
+    {
+        if (method_exists($this, 'get'.$property)) {
+            return call_user_func_array([$this, 'get'.$property], []);
+        }
+        return $this->getMetaValue($property);
+    }
+
+    public function getField($field)
+    {
+        return $this->getConfig()->getField($field);
+    }
+
+    public function fieldExists($field)
+    {
+        return $this->getConfig()->fieldExists($field);
     }
 }

@@ -16,8 +16,10 @@ class FlexibleContentBuilder extends AcfBuilder\FlexibleContentBuilder
         if ($layout instanceof FieldGroup) {
             $fieldGroup = $layout;
             $layout = clone $fieldGroup->getConfig();
-            $layout->setGroupConfig('name', get_class($fieldGroup));
+            return parent::addLayout($layout, $args)
+                ->setGroupConfig('name', urlencode(get_class($fieldGroup)));
         }
+
         // layout needs to be FieldsBuilder
         return parent::addLayout($layout, $args);
     }
