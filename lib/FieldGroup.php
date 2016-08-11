@@ -126,7 +126,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
      * @param  FieldsBuilder $builder to configure
      * @return FieldsBuilder
      */
-    protected function configure($builder)
+    protected function configure(FieldsBuilder $builder)
     {
         return $builder;
     }
