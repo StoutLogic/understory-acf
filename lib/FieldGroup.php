@@ -336,13 +336,17 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
      */
     public function getCachedMetaValue($metaFieldKey)
     {
-        // If a repeater, get instance
+        // If a repeater or flexible content, get instance
         if ($this->fieldExists($metaFieldKey)) {
             $field = $this->getField($metaFieldKey);
             if ($field instanceof RepeaterBuilder) {
                 return $this->getMetaValues($field->getName(), $field->getRepeaterFieldsClass());
             }
+            if ($field instanceof FlexibleContentBuilder) {
+                return $this->getMetaValues($field->getName());
+            }
         }
+
 
         // Otherwise use the value Timber probably has cached
         $fieldKey = $this->getNamespacedMetaFieldKey($metaFieldKey);
@@ -423,6 +427,13 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
                     $className = $classNames[$i];
                 }
                 $className = urldecode($className);
+
+                if ($this->fieldExists($metaFieldKey)) {
+                    $field = $this->getField($metaFieldKey);
+                    if ($field instanceof FlexibleContentBuilder && $field->layoutExists($className)) {
+                        $className = $field->getLayoutClass($className);
+                    }
+                }
 
                 if (class_exists($className)) {
                     $this->metaValues[$metaFieldKey][] = new $className($this, $metaFieldKey.'_'.$i);
