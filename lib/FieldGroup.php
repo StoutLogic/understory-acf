@@ -110,8 +110,9 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
 
     public function hideOnScreen($value)
     {
-        $hide = $this->getConfig()->getGroupConfig('hide_on_screen') || [];
+        $hide = $this->getConfig()->getGroupConfig('hide_on_screen') ?: [];
         $hide[] = $value;
+
         $this->getConfig()->setGroupConfig('hide_on_screen', $hide);
         return $this;
     }
