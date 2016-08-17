@@ -64,6 +64,9 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
             $this->setParentFieldGroup($binding);
             // Get metaDataBinding from ParentFieldGroup
             $this->setMetaDataBinding($this->getParentFieldGroup()->getMetaDataBinding());
+            if (is_null($metaValueNamespace)) {
+                $this->setMetaValueNamespace('');
+            }
         } else if ($binding) {
             $this->setMetaDataBinding($binding);
         }
@@ -454,17 +457,21 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
      */
     protected function getParentMetaValueNamespace()
     {
-        if ($this->getParentFieldGroup() && $this->getParentFieldGroup()->getMetaValueNamespace() !== '') {
+        if ($this->getParentFieldGroup()) {
+
             $parentNamespace =
                 $this->getParentFieldGroup()->getParentMetaValueNamespace().
                 $this->getParentFieldGroup()->getMetaValueNamespace();
 
-            if ($parentNamespace !== '') {
-                $namespace = $parentNamespace.'_';
-
-                return $namespace;
-            }
+                if ($parentNamespace !== "") {
+                    $namespace = $parentNamespace;
+                    $namespace = rtrim($namespace, '_');
+                    $namespace .= '_';
+                    return $namespace;
+                }
         }
+
+
 
         return '';
     }
@@ -538,7 +545,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
         $this->metaValueNamespace = $metaValueNamespace;
     }
 
-    private function getMetaValueNamespace()
+    public function getMetaValueNamespace()
     {
         return $this->metaValueNamespace;
     }
