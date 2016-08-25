@@ -151,7 +151,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
             $this->setCustomPostTypeLocation($metaDataBinding);
         } elseif ($metaDataBinding instanceof Understory\CustomTaxonomy) {
             $this->setCustomTaxonomyLocation($metaDataBinding);
-        } elseif ($metaDataBinding instanceof OptionsPage) {
+        } elseif ($metaDataBinding instanceof CustomOptionsPage) {
             $this->setOptionsPageLocation($metaDataBinding);
         } elseif ($metaDataBinding instanceof Understory\User) {
             $this->setUserFormLocation($metaDataBinding);
@@ -209,7 +209,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
         $this->setLocation('taxonomy', '==', $taxonomy);
     }
 
-    private function setOptionsPageLocation(Understory\ACF\OptionsPage $metaDataBinding)
+    private function setOptionsPageLocation(Understory\ACF\CustomOptionsPage $metaDataBinding)
     {
         $this->namespaceFieldGroupKey('options_' . $metaDataBinding->getId());
         $this->setLocation('options_page', '==', $metaDataBinding->getId());
