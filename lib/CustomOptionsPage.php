@@ -88,7 +88,6 @@ abstract class CustomOptionsPage implements MetaDataBinding, Registry, Registera
         }
 
         // private field
-        echo 'isset';
         if (isset($this->$field)) {
             return $this->$field;
         }
