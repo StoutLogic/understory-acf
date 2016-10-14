@@ -3,6 +3,7 @@
 namespace Understory\ACF;
 
 use Understory\MetaDataBinding;
+use Understory\DelegatesMetaDataBinding;
 use Understory\Registry;
 use Understory\Registerable;
 
@@ -87,7 +88,6 @@ abstract class CustomOptionsPage implements MetaDataBinding, Registry, Registera
         }
 
         // private field
-        echo 'isset';
         if (isset($this->$field)) {
             return $this->$field;
         }
@@ -110,13 +110,13 @@ abstract class CustomOptionsPage implements MetaDataBinding, Registry, Registera
         return false;
     }
 
-    protected function set($field, $value)
+    protected function has($field, $value)
     {
-        if (is_a($value, Registerable::class)) {
+        if ($value instanceof Registerable) {
             $this->addToRegistry($field, $value);
         }
 
-        if (is_a($value, DelegatesMetaDataBinding::class)) {
+        if ($value instanceof DelegatesMetaDataBinding) {
             $value->setMetaDataBinding($this);
         }
 
@@ -125,10 +125,7 @@ abstract class CustomOptionsPage implements MetaDataBinding, Registry, Registera
 
     public function __call($method, $args)
     {
-        if (strpos($method, 'set') === 0) {
-            $field = str_replace('set', '', $method);
-            $this->set($field, $args[0]);
-        } else if (method_exists($this, 'get'.$method)) {
+        if (method_exists($this, 'get'.$method)) {
             $method = 'get'.$method;
             return $this->$method($args);
         } else if (method_exists($this->getOptionsPage(), $method)) {
@@ -148,6 +145,11 @@ abstract class CustomOptionsPage implements MetaDataBinding, Registry, Registera
     {
         // Delegate to OptionsPage
         return $this->getOptionsPage()->setMetaValue($field, $value);
+    }
+
+    public function getBindingName()
+    {
+        $this->getOptionsPage()->getBindingName();
     }
 
 }

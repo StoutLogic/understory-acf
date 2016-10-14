@@ -15,10 +15,6 @@ class OptionsPageIntegrationTest extends TestCase
     public function setup()
     {
         // Mock the WordPress global function
-        $this->wordPressAddActionMock = PHPMockery::mock('Understory\ACF', 'add_action')
-            ->with('acf/init', Mockery::any());
-
-        // Mock the WordPress global function
         $this->acfAddOptionsPageMock = PHPMockery::mock('Understory\ACF', 'acf_add_options_page')
             ->with(Mockery::any());
 
@@ -36,7 +32,6 @@ class OptionsPageIntegrationTest extends TestCase
         $this->assertSame('Site Settings', $siteSettings->getTitle());
         $this->assertInstanceOf(SocialSettings::class, $siteSettings->socialSettings);
 
-        $this->wordPressAddActionMock->times(1);
         $this->acfAddOptionsPageMock->times(1);
 
         $siteSettings->register();
@@ -96,7 +91,7 @@ class SiteSettings extends CustomOptionsPage
 
     public function configure(OptionsPage $optionsPage)
     {
-        $this->set('socialSettings', new SocialSettings);
+        $this->has('socialSettings', new SocialSettings);
 
         return $optionsPage;
     }

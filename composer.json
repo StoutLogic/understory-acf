@@ -24,7 +24,7 @@
   },
     "require": {
         "php": ">=5.4.0",
-        "stoutlogic/understory": "dev-master",
+        "stoutlogic/understory": "dev-develop",
         "stoutlogic/acf-builder": "dev-develop"
     },
     "require-dev": {
@@ -43,5 +43,7 @@
             "Understory\\ACF\\Tests\\": "tests/"
         }
     },
-    "version": "dev-master"
+  "minimum-stability": "dev",
+
+  "prefer-stable": true
 }

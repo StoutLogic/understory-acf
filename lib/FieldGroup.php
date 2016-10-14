@@ -1,15 +1,19 @@
 <?php
 
+
 namespace Understory\ACF;
 
 use Understory\DelegatesMetaDataBinding;
 use Understory\MetaDataBinding;
 use Understory\Registerable;
+use Understory\Sequential;
 use Understory;
 
-abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
+require('PatchACFToUseTermMeta.php');
+
+abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Sequential
 {
-    use \Understory\Core;
+    use Understory\Core;
 
     /**
      * MetaDataBinding of the Object that has this field.
@@ -49,7 +53,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
     /**
      * Pass in the metaDataBinding of the Object that has this field.
      *
-     * @param mixed  $metaDataBinding              gets passed to registerRule
+     * @param mixed  $binding              gets passed to registerRule
      * @param string $metaValueNamespace if part of a repeater pass in the prefix to retrive
      *                                   the meta data from the database for that row
      */
@@ -60,6 +64,9 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
             $this->setParentFieldGroup($binding);
             // Get metaDataBinding from ParentFieldGroup
             $this->setMetaDataBinding($this->getParentFieldGroup()->getMetaDataBinding());
+            if (is_null($metaValueNamespace)) {
+                $this->setMetaValueNamespace('');
+            }
         } else if ($binding) {
             $this->setMetaDataBinding($binding);
         }
@@ -72,21 +79,13 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
      */
     private function initializeBuilder()
     {
-        $reflectionClass = new \ReflectionClass(static::class);
-
-        // Chop off the namespace
-        $className = $reflectionClass->getShortName();
-
-        // Convert to snake case
-        $className = ltrim(strtolower(preg_replace('/[A-Z]/', '_$0', $className)), '_');
-
-        return new FieldsBuilder($className);
+        return new FieldsBuilder($this->getBindingName());
     }
 
     /**
      * Returns the AcfBuilder object. If config isn't set, set it to the
      * defaultConfig
-     * @return \StoutLogic\acf-builder\FieldsBuilder
+     * @return FieldsBuilder
      */
     public function getConfig()
     {
@@ -114,8 +113,9 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
 
     public function hideOnScreen($value)
     {
-        $hide = $this->getConfig()->getGroupConfig('hide_on_screen') || [];
+        $hide = $this->getConfig()->getGroupConfig('hide_on_screen') ?: [];
         $hide[] = $value;
+
         $this->getConfig()->setGroupConfig('hide_on_screen', $hide);
         return $this;
     }
@@ -130,7 +130,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
      * @param  FieldsBuilder $builder to configure
      * @return FieldsBuilder
      */
-    protected function configure($builder)
+    protected function configure(FieldsBuilder $builder)
     {
         return $builder;
     }
@@ -147,13 +147,13 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
     {
         if ($metaDataBinding instanceof Understory\View) {
             $this->setViewLocation($metaDataBinding);
-        } else if ($metaDataBinding instanceof Understory\CustomPostType) {
+        } elseif ($metaDataBinding instanceof Understory\CustomPostType) {
             $this->setCustomPostTypeLocation($metaDataBinding);
-        } else if ($metaDataBinding instanceof Understory\CustomTaxonomy) {
+        } elseif ($metaDataBinding instanceof Understory\CustomTaxonomy) {
             $this->setCustomTaxonomyLocation($metaDataBinding);
-        } else if ($metaDataBinding instanceof Understory\ACF\OptionPage) {
+        } elseif ($metaDataBinding instanceof CustomOptionsPage) {
             $this->setOptionsPageLocation($metaDataBinding);
-        } else if ($metaDataBinding instanceof Understory\User) {
+        } elseif ($metaDataBinding instanceof Understory\User) {
             $this->setUserFormLocation($metaDataBinding);
         }
         return $this;
@@ -203,13 +203,13 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
 
     private function setCustomTaxonomyLocation(Understory\CustomTaxonomy $metaDataBinding)
     {
-        $taxonomy = $metaDataBinding->getName();
-        $this->namespaceFieldGroupKey('post_type_' . $taxonomy);
+        $taxonomy = $metaDataBinding->getTaxonomy();
+        $this->namespaceFieldGroupKey('taxonomy_' . $taxonomy);
 
         $this->setLocation('taxonomy', '==', $taxonomy);
     }
 
-    private function setOptionsPageLocation(Understory\ACF\OptionPage $metaDataBinding)
+    private function setOptionsPageLocation(Understory\ACF\CustomOptionsPage $metaDataBinding)
     {
         $this->namespaceFieldGroupKey('options_' . $metaDataBinding->getId());
         $this->setLocation('options_page', '==', $metaDataBinding->getId());
@@ -224,9 +224,20 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
     private function namespaceFieldGroupKey($append)
     {
         $builder = $this->getConfig();
-        $builder->setGroupConfig('key',
+        $builder->setGroupConfig(
+            'key',
             $builder->getGroupConfig('key') . '_' . $append
         );
+    }
+
+    /**
+     * Sets the Field Group's Menu Order.
+     * @param $position
+     * @param MetaDataBinding $metaDataBinding
+     */
+    public function setSequentialPosition($position, MetaDataBinding $metaDataBinding)
+    {
+        $this->getConfig()->setGroupConfig('menu_order', $position);
     }
 
     /**
@@ -234,22 +245,17 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
      *
      * @param object $metaDataBinding     Shortcut which will call setLocation with
      *                          this metaDataBinding.
-     * @param integer $order    Order the field group should appear in the metaDataBinding
      * @return array $config    The final ACF config array
      */
-    public function register($metaDataBinding = null, $order = 0)
+    public function register($metaDataBinding = null)
     {
         if (!$metaDataBinding) {
             $metaDataBinding = $this->getMetaDataBinding();
         }
         $this->setLocationForMetaDataBinding($metaDataBinding);
 
-        $builder = $this->getConfig();
-        $builder->setGroupConfig('menu_order', $order);
-
         // Namespace the config keys
-        $config = $builder->build();
-
+        $config = $this->getConfig()->build();
 
         // Optimization:
         // Don't register a field group that already exists
@@ -277,11 +283,24 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
             $namespace = $metaFieldKey.'_'.$index;
 
             // Create a new instance of our current FieldGroup sub class
-            $fieldGroupClass = get_called_class();
+
+            $fieldGroupClass = $this->getRepeaterClass($metaFieldKey);
             $this->repeaterRows[$index] = new $fieldGroupClass($this,  $namespace);
         }
 
         return $this->repeaterRows[$index];
+    }
+
+    private function getRepeaterClass($metaFieldKey)
+    {
+        if ($this->fieldExists($metaFieldKey)) {
+            $field = $this->getField($metaFieldKey);
+            if ($field instanceof RepeaterBuilder && $field->getRepeaterFieldsClass()) {
+                return $field->getRepeaterFieldsClass();
+            }
+        }
+
+        return get_called_class();
     }
 
     /**
@@ -295,6 +314,10 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
      */
     public function getMetaValue($metaFieldKey, $index = null)
     {
+        if ($index === null && $cachedMetaValue = $this->getCachedMetaValue($metaFieldKey)) {
+            return $cachedMetaValue;
+        }
+
         if (isset($index)) {
             return $this->getRepeaterRow($metaFieldKey, $index);
         }
@@ -302,6 +325,41 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
         $namespacedMetaFieldKey = $this->getNamespacedMetaFieldKey($metaFieldKey);
 
         return $this->getMetaDataBinding()->getMetaValue($namespacedMetaFieldKey);
+    }
+
+    /**
+     * Timber caches all meta data on the object as a public property. The property name
+     * is the same as the Namespaced Meta Field Key. This will save a database lookup.
+     *
+     * If the field is a Repeater, then return using getMetaValues, and pass in the Repeater Field's
+     * class, that was used in the `addFields` method call during configuration. If one wasn't used, null
+     * will be passed, resulting in the current FieldGroup's class being used to initialize the repeater
+     * items.
+     * @param string $metaFieldKey
+     * @return mixed
+     */
+    public function getCachedMetaValue($metaFieldKey)
+    {
+        // If a repeater or flexible content, get instance
+        if ($this->fieldExists($metaFieldKey)) {
+            $field = $this->getField($metaFieldKey);
+            if ($field instanceof RepeaterBuilder) {
+                return $this->getMetaValues($field->getName(), $field->getRepeaterFieldsClass());
+            }
+            if ($field instanceof FlexibleContentBuilder) {
+                return $this->getMetaValues($field->getName());
+            }
+        }
+
+
+        // Otherwise use the value Timber probably has cached
+        $fieldKey = $this->getNamespacedMetaFieldKey($metaFieldKey);
+
+        if (isset($this->getMetaDataBinding()->$fieldKey)) {
+            return $this->getMetaDataBinding()->$fieldKey;
+        }
+
+        return false;
     }
 
     public function setMetaValue($metaFieldKey, $value)
@@ -321,7 +379,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
      * A getter is still required if the value needs any post processing
      *
      * @param string $metaFieldKey
-     * @param index  $index        optional
+     * @param int  $index        optional
      *
      * @return mixed Meta Value or FieldGroup
      */
@@ -353,7 +411,6 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
         if (!array_key_exists($metaFieldKey, $this->metaValues)) {
             $this->metaValues[$metaFieldKey] = [];
 
-
             $value = $this->getMetaValue($metaFieldKey);
 
             // Check to see if is a repeater or flexible content field
@@ -362,7 +419,10 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
                 $count = $value;
             } else {
                 // Flexible Content
-                $classNames = unserialize($value);
+                $classNames = $value;
+                if (!is_array($value)) {
+                    $classNames = unserialize($value);
+                }
                 $count = count($classNames);
             }
 
@@ -370,9 +430,17 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
                 if (isset($classNames) && is_array($classNames)) {
                     $className = $classNames[$i];
                 }
+                $className = urldecode($className);
+
+                if ($this->fieldExists($metaFieldKey)) {
+                    $field = $this->getField($metaFieldKey);
+                    if ($field instanceof FlexibleContentBuilder && $field->layoutExists($className)) {
+                        $className = $field->getLayoutClass($className);
+                    }
+                }
 
                 if (class_exists($className)) {
-                    $this->metaValues[$metaFieldKey][] = new $className($this->getMetaValue($metaFieldKey, $i));
+                    $this->metaValues[$metaFieldKey][] = new $className($this, $metaFieldKey.'_'.$i);
                 } else {
                     $this->metaValues[$metaFieldKey][] = $this->getMetaValue($metaFieldKey, $i);
                 }
@@ -389,17 +457,21 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
      */
     protected function getParentMetaValueNamespace()
     {
-        if ($this->getParentFieldGroup() && $this->getParentFieldGroup()->getMetaValueNamespace() !== '') {
+        if ($this->getParentFieldGroup()) {
+
             $parentNamespace =
                 $this->getParentFieldGroup()->getParentMetaValueNamespace().
                 $this->getParentFieldGroup()->getMetaValueNamespace();
 
-            if ($parentNamespace !== '') {
-                $namespace = $parentNamespace.'_';
-
-                return $namespace;
-            }
+                if ($parentNamespace !== "") {
+                    $namespace = $parentNamespace;
+                    $namespace = rtrim($namespace, '_');
+                    $namespace .= '_';
+                    return $namespace;
+                }
         }
+
+
 
         return '';
     }
@@ -437,6 +509,17 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
         return $this->metaDataBinding;
     }
 
+    public function getBindingName()
+    {
+        $reflectionClass = new \ReflectionClass(static::class);
+
+        // Chop off the namespace
+        $className = $reflectionClass->getShortName();
+
+        // Convert to snake case
+        return ltrim(strtolower(preg_replace('/[A-Z]/', '_$0', $className)), '_');
+    }
+
     private function setParentFieldGroup($parentFieldGroup)
     {
         $this->parentFieldGroup = $parentFieldGroup;
@@ -452,7 +535,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
         $this->namespace = $namespace;
     }
 
-    public function getNamespace($namespace)
+    public function getNamespace()
     {
         return $this->namespace;
     }
@@ -462,8 +545,31 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable
         $this->metaValueNamespace = $metaValueNamespace;
     }
 
-    private function getMetaValueNamespace()
+    public function getMetaValueNamespace()
     {
         return $this->metaValueNamespace;
+    }
+
+    public function __call($method, $args)
+    {
+        return $this->__get($method);
+    }
+
+    public function __get($property)
+    {
+        if (method_exists($this, 'get'.$property)) {
+            return call_user_func_array([$this, 'get'.$property], []);
+        }
+        return $this->getMetaValue($property);
+    }
+
+    public function getField($field)
+    {
+        return $this->getConfig()->getField($field);
+    }
+
+    public function fieldExists($field)
+    {
+        return $this->getConfig()->fieldExists($field);
     }
 }
