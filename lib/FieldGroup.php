@@ -186,7 +186,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
         $this->namespaceFieldGroupKey('view_' . str_replace('/', '', $fileName));
 
         // Check to see if this is the default template
-        if (in_array(Understory\DefaultPage::class, class_implements($metaDataBinding))) {
+        if (str_replace('/', '', strtolower($fileName)) === 'page') {
             $viewFile = 'default';
         }
 
