@@ -414,7 +414,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
             $value = $this->getMetaValue($metaFieldKey);
 
             // Check to see if is a repeater or flexible content field
-            if (is_numeric($value)) {
+            if (is_numeric($value) || $value === '') {
                 // Repeater
                 $count = $value;
             } else {
