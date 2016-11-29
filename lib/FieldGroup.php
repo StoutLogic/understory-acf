@@ -9,8 +9,6 @@ use Understory\Registerable;
 use Understory\Sequential;
 use Understory;
 
-require('PatchACFToUseTermMeta.php');
-
 abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Sequential
 {
     use Understory\Core;
