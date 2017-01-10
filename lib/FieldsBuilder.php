@@ -10,12 +10,12 @@ use StoutLogic\AcfBuilder;
  */
 class FieldsBuilder extends AcfBuilder\FieldsBuilder
 {
-    public function addFlexibleContent($name, $args = [])
+    public function addFlexibleContent($name, array $args = [])
     {
         return $this->initializeField(new FlexibleContentBuilder($name, 'flexible_content', $args));
     }
 
-    public function addRepeater($name, $args = [])
+    public function addRepeater($name, array $args = [])
     {
         return $this->initializeField(new RepeaterBuilder($name, 'repeater', $args));
     }
