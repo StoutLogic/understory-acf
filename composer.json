@@ -24,8 +24,8 @@
   },
     "require": {
         "php": ">=5.4.0",
-        "stoutlogic/understory": "dev-develop",
-        "stoutlogic/acf-builder": "dev-develop"
+        "stoutlogic/understory": "^2.0",
+        "stoutlogic/acf-builder": "^1.3"
     },
     "require-dev": {
         "phpunit/phpunit": "5.4.*",
