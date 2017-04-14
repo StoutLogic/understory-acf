@@ -12,14 +12,6 @@
       "TGM": {
         "type": "git",
         "url": "https://github.com/StoutLogic/TGM-Plugin-Activation"
-      },
-      "understory": {
-          "type": "path",
-          "url": "/Users/steve/Work/stoutlogic/understory"
-      },
-      "acf-builder": {
-          "type": "path",
-          "url": "/Users/steve/Work/stoutlogic/acf-builder"
       }
   },
     "require": {
