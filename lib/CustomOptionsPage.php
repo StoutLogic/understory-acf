@@ -43,6 +43,9 @@ abstract class CustomOptionsPage implements MetaDataBinding, Registry, Registera
         return new OptionsPage($title);
     }
 
+    /**
+     * @return OptionsPage
+     */
     public function getOptionsPage()
     {
         if (!$this->optionsPage) {
@@ -150,6 +153,11 @@ abstract class CustomOptionsPage implements MetaDataBinding, Registry, Registera
     public function getBindingName()
     {
         $this->getOptionsPage()->getBindingName();
+    }
+
+    public function getSlug()
+    {
+        return $this->getOptionsPage()->getConfig()['menu_slug'];
     }
 
 }
