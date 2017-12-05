@@ -410,6 +410,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
             $this->metaValues[$metaFieldKey] = [];
 
             $value = $this->getMetaValue($metaFieldKey);
+            $count = 0;
 
             // Check to see if is a repeater or flexible content field
             if (is_numeric($value) || $value === '') {
@@ -421,7 +422,9 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
                 if (!is_array($value)) {
                     $classNames = unserialize($value);
                 }
-                $count = count($classNames);
+                if ($classNames != null) {
+                    $count = count($classNames);
+                }
             }
 
             for ($i = 0; $i < $count; $i++) {
