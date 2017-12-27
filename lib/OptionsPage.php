@@ -99,9 +99,9 @@ class OptionsPage implements MetaDataBinding, Registerable
      */
     public function register()
     {
-        // if (function_exists('acf_add_options_page')) {
-        $page = acf_add_options_page($this->config);
-        // }
+        if (function_exists('acf_add_options_page')) {
+            \acf_add_options_page($this->config);
+        }
     }
 
     /**
