@@ -20,6 +20,11 @@ class FieldsBuilder extends AcfBuilder\FieldsBuilder
         return $this->initializeField(new RepeaterBuilder($name, 'repeater', $args));
     }
 
+    public function addGroup($name, array $args = [])
+    {
+        return $this->initializeField(new GroupBuilder($name, 'group', $args));
+    }
+
     /**
      * Add multiple fields either via an array or from another builder
      * @param FieldBuilder|FieldGroup $fields
