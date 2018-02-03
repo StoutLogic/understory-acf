@@ -145,6 +145,8 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
     {
         if ($metaDataBinding instanceof Understory\View) {
             $this->setViewLocation($metaDataBinding);
+        } elseif ($metaDataBinding instanceof Understory\CustomNavMenuItem) {
+            $this->setCustomNavMenuItemLocation($metaDataBinding);
         } elseif ($metaDataBinding instanceof Understory\CustomPostType) {
             $this->setCustomPostTypeLocation($metaDataBinding);
         } elseif ($metaDataBinding instanceof Understory\CustomTaxonomy) {
@@ -189,6 +191,15 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
         }
 
         $this->setLocation('page_template', '==', $viewFile);
+    }
+
+    private function setCustomNavMenuItemLocation(Understory\CustomPostType $metaDataBinding)
+    {
+        $postType = $metaDataBinding->getPostType();
+
+        if (!$this->getConfig()->getLocation()) {
+            $this->setLocation('nav_menu_item', '==', 'all');
+        }
     }
 
     private function setCustomPostTypeLocation(Understory\CustomPostType $metaDataBinding)
@@ -464,12 +475,12 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
                 $this->getParentFieldGroup()->getParentMetaValueNamespace().
                 $this->getParentFieldGroup()->getMetaValueNamespace();
 
-                if ($parentNamespace !== "") {
-                    $namespace = $parentNamespace;
-                    $namespace = rtrim($namespace, '_');
-                    $namespace .= '_';
-                    return $namespace;
-                }
+            if ($parentNamespace !== "") {
+                $namespace = $parentNamespace;
+                $namespace = rtrim($namespace, '_');
+                $namespace .= '_';
+                return $namespace;
+            }
         }
 
 
