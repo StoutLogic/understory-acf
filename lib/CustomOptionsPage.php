@@ -160,4 +160,9 @@ abstract class CustomOptionsPage implements MetaDataBinding, Registry, Registera
         return $this->getOptionsPage()->getConfig()['menu_slug'];
     }
 
+    public function __isset($property)
+    {
+        return isset($this->$property) || isset($this->getOptionsPage()->$property);
+    }
+
 }
