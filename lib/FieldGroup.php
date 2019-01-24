@@ -364,7 +364,7 @@ abstract class FieldGroup implements DelegatesMetaDataBinding, Registerable, Seq
         // Otherwise use the value Timber probably has cached
         $fieldKey = $this->getNamespacedMetaFieldKey($metaFieldKey);
 
-        if (isset($this->getMetaDataBinding()->$fieldKey)) {
+        if (array_key_exists($fieldKey, get_object_vars($this->getMetaDataBinding()) )) {
             return $this->getMetaDataBinding()->$fieldKey;
         }
 
