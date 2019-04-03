@@ -16,7 +16,7 @@
   },
     "require": {
         "php": ">=5.4.0",
-        "stoutlogic/understory": "^0.6.0||^0.7.0||^0.8.0||dev-master",
+        "stoutlogic/understory": "^0.6.0||^0.7.0||^0.8.0||^0.9.0||dev-master",
         "stoutlogic/acf-builder": "^1.6.0"
     },
     "require-dev": {
