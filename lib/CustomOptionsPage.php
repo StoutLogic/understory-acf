@@ -29,13 +29,13 @@ abstract class CustomOptionsPage implements MetaDataBinding, Registry, Registera
         $reflection = new \ReflectionClass(static::class);
 
         // Convert class name to Options Page Title
-        $title = join(preg_split(
+        $title = implode(' ', preg_split(
             '/(^[^A-Z]+|[A-Z][^A-Z]+|[A-Z][A-Z]+)/',
             $reflection->getShortName(),
             -1, /* no limit for replacement count */
             PREG_SPLIT_NO_EMPTY /*don't return empty elements*/
             | PREG_SPLIT_DELIM_CAPTURE /*don't strip anything from output array*/
-        ), " ");
+        ));
 
         $title = str_replace('_', ' ', $title);
         $title = preg_replace('/\s+/', ' ', $title);
